@@ -157,5 +157,7 @@ install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
-
+include_directories(/opt/ros/humble/include/tf2_geometry_msgs)
+include_directories(/opt/ros/humble/include/tf2)
+include_directories(/opt/ros/humble/include/tf2_ros)
 ament_package()

@@ -63,30 +63,54 @@ def generate_launch_description():
     controllers_yaml = load_yaml('tm_moveit_cpp_demo', 'config/controllers.yaml')
     moveit_controllers = { 'moveit_simple_controller_manager' : controllers_yaml,
                            'moveit_controller_manager': 'moveit_simple_controller_manager/MoveItSimpleControllerManager'}
+    joint_limit_yaml = load_yaml('tm_moveit_config_tm5-700', 'config/joint_limits.yaml')
+    joint_limits = {'robot_description_planning': joint_limit_yaml}
 
+    ompl_planning_yaml = load_yaml('tm_moveit_config_tm5-700', 'config/ompl_planning.yaml')
     ompl_planning_pipeline_config = { 'ompl' : {
         'planning_plugin' : 'ompl_interface/OMPLPlanner',
         'request_adapters' : """default_planner_request_adapters/AddTimeOptimalParameterization default_planner_request_adapters/FixWorkspaceBounds default_planner_request_adapters/FixStartStateBounds default_planner_request_adapters/FixStartStateCollision default_planner_request_adapters/FixStartStatePathConstraints""" ,
         'start_state_max_bounds_error' : 0.1 } }
-    ompl_planning_yaml = load_yaml('tm_moveit_config_tm5-700', 'config/ompl_planning.yaml')
+    planning = {'move_group': {
+        'planning_plugin': 'ompl_interface/OMPLPlanner',
+        'request_adapters': 'default_planner_request_adapters/AddRuckigTrajectorySmoothing default_planner_request_adapters/AddTimeOptimalParameterization default_planner_request_adapters/ResolveConstraintFrames default_planner_request_adapters/FixWorkspaceBounds default_planner_request_adapters/FixStartStateBounds default_planner_request_adapters/FixStartStateCollision default_planner_request_adapters/FixStartStatePathConstraints',
+        'start_state_max_bounds_error': 0.1}}
     ompl_planning_pipeline_config['ompl'].update(ompl_planning_yaml)
 
-    # MoveItCpp demo executable
-    run_moveit_cpp_node = Node(
-        package='tm_moveit_cpp_demo',
-        # TODO(henningkayser): add debug argument
-        # prefix='xterm -e gdb --args',
-        executable='run_moveit_cpp',
-        #name='run_moveit_cpp',
-        output='screen',
-        parameters=[
-            moveit_cpp_yaml_file_name,
-            robot_description,
-            robot_description_semantic,
-            kinematics_yaml,
-            ompl_planning_pipeline_config,
-            moveit_controllers]
-        )
+    trajectory_execution = {
+        'moveit_manage_controllers': True,
+        'trajectory_execution.allowed_execution_duration_scaling': 1.2,
+        'trajectory_execution.allowed_goal_duration_margin': 0.5,
+        'trajectory_execution.allowed_start_tolerance': 0.01,
+    }
+
+    planning_scene_monitor_parameters = {
+        'publish_planning_scene': True,
+        'publish_geometry_updates': True,
+        'publish_state_updates': True,
+        'publish_transforms_updates': True,
+    }
+
+    # Planning Scene
+    planning_scene_monitor_parameters = {'publish_planning_scene': True,
+                                         'publish_geometry_updates': True,
+                                         'publish_state_updates': True,
+                                         'publish_transforms_updates': True}
+
+    move_node = Node(package='moveit_ros_move_group',
+             executable='move_group',
+             name='move_group',
+             output='screen',
+             parameters=[robot_description,
+                         robot_description_semantic,
+                         kinematics_yaml,
+                         joint_limits,
+                         planning,
+                         ompl_planning_yaml,
+                         moveit_controllers,
+                         trajectory_execution,
+                         planning_scene_monitor_parameters,
+                         {'use_sim_time': False}])
 
     # RViz
     rviz_config_file = get_package_share_directory('tm_moveit_cpp_demo') + "/launch/run_moveit_cpp.rviz"
@@ -141,4 +165,4 @@ def generate_launch_description():
         )
     '''
 
-    return LaunchDescription([ tm_driver_node, static_tf, robot_state_publisher, rviz_node, run_moveit_cpp_node ])
+    return LaunchDescription([ tm_driver_node, static_tf, robot_state_publisher, rviz_node, move_node])
