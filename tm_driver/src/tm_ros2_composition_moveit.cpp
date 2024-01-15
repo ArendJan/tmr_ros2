@@ -66,16 +66,19 @@ int main(int argc, char *argv[])
     bool is_fake = true;
     std::string host;
     if (argc > 1) {
-        host = argv[1];
+      for(auto i = 1; i < argc; i++){
+        host = argv[i];
+        std::cout << "host: " << host << argc << std::endl;
         if (host.find("robot_ip:=") != std::string::npos) {
           host.replace(host.begin(), host.begin() + 10, "");
           is_fake = false;
+          break;
         } else if (host.find("ip:=") != std::string::npos) {
           host.replace(host.begin(), host.begin() + 4, "");
           is_fake = false;
-        } else{
-          std::cout<<"ip is not found, use fake robot"<<std::endl;
-        }    
+          break;
+        } 
+      }   
     } else {
         rclcpp::shutdown();
     }
